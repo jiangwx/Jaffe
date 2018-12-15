@@ -1,0 +1,13 @@
+**/.ipynb_checkpoints
+**/cmake-build-debug
+**/.idea/
+**/weights/
+**/blobs/
+**/Darknet19/
+**/Googlenet/
+**/test/
+*.zip
+*.txt
+*.jpg
+*.bb
+!CMakeLists.txt
