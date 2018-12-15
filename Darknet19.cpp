@@ -1,5 +1,5 @@
 #include "Darknet19.h"
-layer DNet[26] = {
+layer DNet[27] = {
         { conv_,"image",     224,224,3,224,224,3,0,0,0 },
         { conv_,"conv1",     224,224,3,224,224,32,3,1,1 },
         { maxpool_,"pool1",  224,224,32,112,112,32,2,2,0 },
@@ -23,18 +23,19 @@ layer DNet[26] = {
         { conv_,"conv15",    7,7,1024,7,7,512,1,1,0 },
         { conv_,"conv16",    7,7,512,7,7,1024,3,1,1 },
         { conv_,"conv17",    7,7,1024,7,7,512,1,1,0 },
-        { conv_,"conv18",    7,7,512,7,7,30,3,1,1 },
-        { avgpool_,"pool18", 7,7,30,1,1,30,7,1,0 },
+        { conv_,"conv18",    7,7,512,7,7,1024,3,1,1 },
+        { conv_,"conv19",    7,7,1024,7,7,30,1,1,0 },
+        { avgpool_,"pool19", 7,7,30,1,1,30,7,1,0 },
         { softmax_,"softmax",1,1,30,1,1,30,0,0,0 }
 };
 
 enum Darknet19_idx {
     image, conv1, pool1, conv2, pool2, conv3, conv4, conv5, pool5, conv6,
     conv7, conv8, pool8, conv9, conv10, conv11, conv12, conv13, pool13,
-    conv14, conv15, conv16, conv17, conv18, pool18, softmax
+    conv14, conv15, conv16, conv17, conv18, conv19, pool19, softmax
 };
 
-static char Name[]="Darknet19";
+static char Name[]="darknet19";
 
 static float* image_blob;
 static float* conv1_blob;
@@ -96,7 +97,10 @@ static float* conv17_bn;
 static float* conv18_blob;
 static float* conv18_weight;
 static float* conv18_bn;
-static float* pool18_blob;
+static float* conv19_blob;
+static float* conv19_weight;
+static float* conv19_bn;
+static float* pool19_blob;
 
 void conv_bn(float* ifm, float* ofm, float* weight, float* Mean, float* Variale, float* Bias, layer l)
 {
@@ -211,7 +215,11 @@ void Darknet_init()
     conv18_weight = (float*)malloc(DNet[conv18].ic*DNet[conv18].oc*DNet[conv18].k*DNet[conv18].k*sizeof(float));
     conv18_bn = (float*)malloc(DNet[conv18].oc*3*sizeof(float));
 
-    pool18_blob = (float*)malloc(DNet[pool18].oc*DNet[pool18].oh*DNet[pool18].ow*sizeof(float));
+    conv19_blob = (float*)malloc(DNet[conv19].oc*DNet[conv19].oh*DNet[conv19].ow*sizeof(float));
+    conv19_weight = (float*)malloc(DNet[conv19].ic*DNet[conv19].oc*DNet[conv19].k*DNet[conv19].k*sizeof(float));
+    conv19_bn = (float*)malloc(DNet[conv19].oc*3*sizeof(float));
+
+    pool19_blob = (float*)malloc(DNet[pool19].oc*DNet[pool19].oh*DNet[pool19].ow*sizeof(float));
 }
 
 void Darknet_close()
@@ -300,7 +308,11 @@ void Darknet_close()
     free(conv18_weight);
     free(conv18_bn);
 
-    free(pool18_blob);
+    free(conv19_blob);
+    free(conv19_weight);
+    free(conv19_bn);
+
+    free(pool19_blob);
 }
 
 void load_DNet()
@@ -357,6 +369,9 @@ void load_DNet()
     load_mean(conv17_bn,DNet[conv17], Name);
 	
 	load_weight(conv18_weight,DNet[conv18], Name);
+    load_mean(conv18_bn,DNet[conv18], Name);
+
+    load_weight(conv19_weight,DNet[conv19], Name);
 
 }
 
@@ -364,7 +379,9 @@ int Darknet19(float* input)
 {
     timeval start,end;
     gettimeofday(&start, NULL);
+    //load_fm(input,DNet[image],Name);
     conv_bn(input, conv1_blob, conv1_weight, conv1_bn, &conv1_bn[DNet[conv1].oc], &conv1_bn[2*DNet[conv1].oc], DNet[conv1]);
+    check_fm(conv1_blob,DNet[conv1],Name);
     maxpool(conv1_blob,pool1_blob,DNet[pool1]);
     conv_bn(pool1_blob, conv2_blob, conv2_weight, conv2_bn, &conv2_bn[DNet[conv2].oc], &conv2_bn[2*DNet[conv2].oc], DNet[conv2]);
     maxpool(conv2_blob,pool2_blob,DNet[pool2]);
@@ -386,12 +403,14 @@ int Darknet19(float* input)
     conv_bn(conv14_blob, conv15_blob, conv15_weight, conv15_bn, &conv15_bn[DNet[conv15].oc], &conv15_bn[2*DNet[conv15].oc], DNet[conv15]);
     conv_bn(conv15_blob, conv16_blob, conv16_weight, conv16_bn, &conv16_bn[DNet[conv16].oc], &conv16_bn[2*DNet[conv16].oc], DNet[conv16]);
     conv_bn(conv16_blob, conv17_blob, conv17_weight, conv17_bn, &conv17_bn[DNet[conv17].oc], &conv17_bn[2*DNet[conv17].oc], DNet[conv17]);
+    conv_bn(conv17_blob, conv18_blob, conv18_weight, conv18_bn, &conv18_bn[DNet[conv18].oc], &conv18_bn[2*DNet[conv18].oc], DNet[conv18]);
     float* zeros = (float*)calloc(DNet[conv18].oc,sizeof(float));
-    convolution(conv17_blob,conv18_blob,conv18_weight,zeros,DNet[conv18]);
-    avgpool(conv18_blob,pool18_blob,DNet[pool18]);
-    int label = max(pool18_blob, DNet[pool18]);
+    convolution(conv18_blob,conv19_blob,conv19_weight,zeros,DNet[conv19]);
+    avgpool(conv19_blob,pool19_blob,DNet[pool19]);
+    int label = max(pool19_blob, DNet[pool19]);
     gettimeofday(&end, NULL);
     long us = (end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec - start.tv_usec);
+    //check_fm(pool19_blob,DNet[pool19],Name);
     printf("Darknet19 took %lu us\n", us);
     return label;
 }
