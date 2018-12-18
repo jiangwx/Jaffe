@@ -1,37 +1,34 @@
+# darknet19
+name: "darknet19"
 layer {
-  name: "data"
+  name: "train-data"
   type: "Data"
   top: "data"
   top: "label"
-  include {
-    phase: TRAIN
-  }
   transform_param {
-    mean_file: "/media/lulugay/Document/digits/digits/jobs/20181204-003347-2678/mean.binaryproto"
+    mirror: true
+    crop_size: 224
   }
   data_param {
-    source: "/media/lulugay/Document/digits/digits/jobs/20181204-003347-2678/train_db"
     batch_size: 96
-    backend: LMDB
   }
+  include { stage: "train" }
 }
 layer {
-  name: "data"
+  name: "val-data"
   type: "Data"
   top: "data"
   top: "label"
-  include {
-    phase: TEST
-  }
   transform_param {
-    mean_file: "/media/lulugay/Document/digits/digits/jobs/20181204-003347-2678/mean.binaryproto"
+    mirror: false
+    crop_size: 224
   }
   data_param {
-    source: "/media/lulugay/Document/digits/digits/jobs/20181204-003347-2678/val_db"
     batch_size: 96
-    backend: LMDB
   }
+  include { stage: "val" }
 }
+
 layer {
   name: "conv1"
   type: "Convolution"
@@ -937,7 +934,7 @@ layer {
     decay_mult: 1.0
   }
   convolution_param {
-    num_output: 30
+    num_output: 1000
     bias_term: false
     pad: 0
     kernel_size: 1
@@ -958,24 +955,33 @@ layer {
   }
 }
 layer {
-  name: "accuracy"
-  type: "Accuracy"
-  bottom: "pool19"
-  bottom: "label"
-  top: "accuracy"
-  include {
-    phase: TEST
-    phase: TRAIN
-  }
-}
-layer {
   name: "loss"
   type: "SoftmaxWithLoss"
   bottom: "pool19"
   bottom: "label"
   top: "loss"
-  exclude {
-    stage: "deploy"
+  loss_weight: 1
+  exclude { stage: "deploy" }
+}
+layer {
+  name: "top-1"
+  type: "Accuracy"
+  bottom: "pool19"
+  bottom: "label"
+  top: "accuracy"
+  include { stage: "train" }
+  include { stage: "val" }
+}
+layer {
+  name: "top-5"
+  type: "Accuracy"
+  bottom: "pool19"
+  bottom: "label"
+  top: "accuracy-top5"
+  include { stage: "train" }
+  include { stage: "val" }
+  accuracy_param {
+    top_k: 5
   }
 }
 layer {
@@ -983,7 +989,5 @@ layer {
   type: "Softmax"
   bottom: "pool19"
   top: "softmax"
-  include {
-    stage: "deploy"
-  }
+  include { stage: "deploy" }
 }
