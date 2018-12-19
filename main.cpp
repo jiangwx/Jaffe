@@ -1,4 +1,4 @@
-#include "Darknet19.h"
+#include "darknet19_mbn.h"
 #define TEST 30
 char synset[30][35] = {
         {"A-line-loose-dress\0"},
@@ -35,6 +35,7 @@ char synset[30][35] = {
 
 int main(int argc, char *argv[])
 {
+    /*
     char* image_path = argv[1];
     char* mean_path = argv[2];
     float *image = (float *)malloc(sizeof(float)*img_w*img_h*3);
@@ -42,14 +43,11 @@ int main(int argc, char *argv[])
     int label;
 
     load_mean_image(mean_path,mean);
-    load_image(image_path, image, mean);
-
-    Darknet_init();
-    load_DNet();
-    label = Darknet19(image);
-
-    printf("%s %s\n", image_path, synset[label]);
-
-    Darknet_close();
+    load_image(image_path, image, mean);*/
+    float *image = (float *)malloc(sizeof(float)*img_w*img_h*3);
+    darknet_mbn_init();
+    darknet19_mbn(image);
+    //label = Darknet19(image);
+    darknet_mbn_close();
     return 0;
 }

@@ -61,6 +61,8 @@ void lrn(float *ifm, float *ofm, int local, float alpha, float beta, layer l);
 
 void relu(float *ifm, float *ofm, layer l);
 
+void leaky_relu(float *ifm, float *ofm, layer l);
+
 void batchnorm(float* ifm, float* ofm, float* mean, float* variale, float* bias, layer l);
 
 #endif //CNN_H
