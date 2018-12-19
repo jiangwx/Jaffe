@@ -35,6 +35,11 @@ enum darknet19_mbn_idx {
     conv14, conv15, conv16, conv17, conv18, conv19, pool19, softmax
 };
 
+float weight_scale[19] = {10850.9266221, 566.21090914, 1070.00298083, 360.028223613, 665.286867056, 1570.66428737, 545.354393414, 1123.08616209, 1972.73750366, 799.400997701,
+                          1588.75773456, 738.391514917, 1443.75193588, 2439.57875345, 1019.14669717, 1965.62285907, 1012.5035673, 2418.649016, 561.045967476};
+float data_scale[19] = {0.702171744509, 9.72077620961, 11.8347091177, 19.5293484766, 18.3210034661, 18.1539078014, 22.6384094188, 22.2399255351, 21.666395483, 26.6082157192,
+                        25.0779952114, 24.9919813934, 26.7804208808, 26.7753386189, 29.5141801355, 27.2037407002, 24.9464228502, 25.8416002174, 20.1134747723};
+
 static char Name[]="darknet19_mbn";
 
 static float* image_blob;
@@ -102,10 +107,10 @@ static float* conv19_weight;
 static float* conv19_bias;
 static float* pool19_blob;
 
-static void conv_relu(float* ifm, float* ofm, float* weight, float* bias, layer l)
+static void conv_relu(float* ifm, float* ofm, float* weight, float* bias, float weight_scale, float data_scale, layer l)
 {
     float* conv_blob = (float*)malloc(l.oc*l.oh*l.ow*sizeof(float));
-    convolution_mm(ifm,conv_blob,weight,bias,l);
+    convolution_mm(ifm,conv_blob,weight,bias,weight_scale,data_scale,l);
     leaky_relu(conv_blob, ofm, l);
     free(conv_blob);
 }
@@ -379,30 +384,31 @@ int darknet19_mbn(float* input)
     timeval start,end;
     gettimeofday(&start, NULL);
     load_fm(input,DNet[image],Name);
-    conv_relu(input, conv1_blob, conv1_weight, conv1_bias, DNet[conv1]);
+    conv_relu(input, conv1_blob, conv1_weight, conv1_bias, weight_scale[1-1], data_scale[1-1], DNet[conv1]);
+    check_fm(conv1_blob,DNet[conv1],Name);
     maxpool(conv1_blob,pool1_blob,DNet[pool1]);
-    conv_relu(pool1_blob, conv2_blob, conv2_weight, conv2_bias, DNet[conv2]);
+    conv_relu(pool1_blob, conv2_blob, conv2_weight, conv2_bias, weight_scale[2-1], data_scale[2-1], DNet[conv2]);
     maxpool(conv2_blob,pool2_blob,DNet[pool2]);
-    conv_relu(pool2_blob, conv3_blob, conv3_weight, conv3_bias, DNet[conv3]);
-    conv_relu(conv3_blob, conv4_blob, conv4_weight, conv4_bias, DNet[conv4]);
-    conv_relu(conv4_blob, conv5_blob, conv5_weight, conv5_bias, DNet[conv5]);
+    conv_relu(pool2_blob, conv3_blob, conv3_weight, conv3_bias, weight_scale[3-1], data_scale[3-1], DNet[conv3]);
+    conv_relu(conv3_blob, conv4_blob, conv4_weight, conv4_bias, weight_scale[4-1], data_scale[4-1], DNet[conv4]);
+    conv_relu(conv4_blob, conv5_blob, conv5_weight, conv5_bias, weight_scale[5-1], data_scale[5-1], DNet[conv5]);
     maxpool(conv5_blob,pool5_blob,DNet[pool5]);
-    conv_relu(pool5_blob, conv6_blob, conv6_weight, conv6_bias, DNet[conv6]);
-    conv_relu(conv6_blob, conv7_blob, conv7_weight, conv7_bias, DNet[conv7]);
-    conv_relu(conv7_blob, conv8_blob, conv8_weight, conv8_bias, DNet[conv8]);
+    conv_relu(pool5_blob, conv6_blob, conv6_weight, conv6_bias, weight_scale[6-1], data_scale[6-1], DNet[conv6]);
+    conv_relu(conv6_blob, conv7_blob, conv7_weight, conv7_bias, weight_scale[7-1], data_scale[7-1], DNet[conv7]);
+    conv_relu(conv7_blob, conv8_blob, conv8_weight, conv8_bias, weight_scale[8-1], data_scale[8-1], DNet[conv8]);
     maxpool(conv8_blob,pool8_blob,DNet[pool8]);
-    conv_relu(pool8_blob, conv9_blob, conv9_weight, conv9_bias, DNet[conv9]);
-    conv_relu(conv9_blob, conv10_blob, conv10_weight, conv10_bias, DNet[conv10]);
-    conv_relu(conv10_blob, conv11_blob, conv11_weight, conv11_bias, DNet[conv11]);
-    conv_relu(conv11_blob, conv12_blob, conv12_weight, conv12_bias, DNet[conv12]);
-    conv_relu(conv12_blob, conv13_blob, conv13_weight, conv13_bias, DNet[conv13]);
+    conv_relu(pool8_blob, conv9_blob, conv9_weight, conv9_bias, weight_scale[9-1], data_scale[9-1], DNet[conv9]);
+    conv_relu(conv9_blob, conv10_blob, conv10_weight, conv10_bias, weight_scale[10-1], data_scale[10-1], DNet[conv10]);
+    conv_relu(conv10_blob, conv11_blob, conv11_weight, conv11_bias, weight_scale[11-1], data_scale[11-1], DNet[conv11]);
+    conv_relu(conv11_blob, conv12_blob, conv12_weight, conv12_bias, weight_scale[12-1], data_scale[12-1], DNet[conv12]);
+    conv_relu(conv12_blob, conv13_blob, conv13_weight, conv13_bias, weight_scale[13-1], data_scale[13-1], DNet[conv13]);
     maxpool(conv13_blob,pool13_blob,DNet[pool13]);
-    conv_relu(pool13_blob, conv14_blob, conv14_weight, conv14_bias, DNet[conv14]);
-    conv_relu(conv14_blob, conv15_blob, conv15_weight, conv15_bias, DNet[conv15]);
-    conv_relu(conv15_blob, conv16_blob, conv16_weight, conv16_bias, DNet[conv16]);
-    conv_relu(conv16_blob, conv17_blob, conv17_weight, conv17_bias, DNet[conv17]);
-    conv_relu(conv17_blob, conv18_blob, conv18_weight, conv18_bias, DNet[conv18]);
-    convolution(conv18_blob, conv19_blob, conv19_weight, conv19_bias, DNet[conv19]);
+    conv_relu(pool13_blob, conv14_blob, conv14_weight, conv14_bias, weight_scale[14-1], data_scale[14-1], DNet[conv14]);
+    conv_relu(conv14_blob, conv15_blob, conv15_weight, conv15_bias, weight_scale[15-1], data_scale[15-1], DNet[conv15]);
+    conv_relu(conv15_blob, conv16_blob, conv16_weight, conv16_bias, weight_scale[16-1], data_scale[16-1], DNet[conv16]);
+    conv_relu(conv16_blob, conv17_blob, conv17_weight, conv17_bias, weight_scale[17-1], data_scale[17-1], DNet[conv17]);
+    conv_relu(conv17_blob, conv18_blob, conv18_weight, conv18_bias, weight_scale[18-1], data_scale[18-1], DNet[conv18]);
+    convolution_mm(conv18_blob, conv19_blob, conv19_weight, conv19_bias, weight_scale[19-1], data_scale[19-1], DNet[conv19]);
     avgpool(conv19_blob,pool19_blob,DNet[pool19]);
     int label = max(pool19_blob, DNet[pool19]);
     gettimeofday(&end, NULL);

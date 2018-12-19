@@ -1,5 +1,5 @@
 #include "CNN.h"
-#define CheckScale 0.01
+#define CheckScale 0.3
 
 void load_image(char* img_path, float* blob,float* mean)
 {

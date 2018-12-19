@@ -1,6 +1,6 @@
 #include "CNN.h"
 
-void fm2mm(float *fm, float *mm, layer l)
+static void fm2mm(float *fm, float *mm, layer l)
 {
     for(int h=0;h<l.oh;h++)
     {
@@ -29,7 +29,7 @@ void fm2mm(float *fm, float *mm, layer l)
     }
 }
 
-void add_bias(float *ifm, float *ofm, float *bias, layer l)
+static void add_bias(float *ifm, float *ofm, float *bias, layer l)
 {
     for (int oc = 0; oc < l.oc; oc++)
     {
@@ -40,7 +40,7 @@ void add_bias(float *ifm, float *ofm, float *bias, layer l)
     }
 }
 
-void gemm(float *im, float *weight, float* om, layer l)
+static void gemm(float *im, float *weight, float* om, layer l)
 {
     const float alpha=1;
     const float beta=0;
@@ -55,19 +55,48 @@ void gemm(float *im, float *weight, float* om, layer l)
 
 }
 
-void convolution_mm(float *ifm, float *ofm, float *weight, float *bias, layer l)
+void convolution_mm(float *ifm, float *ofm, float *weight, float *bias, float weight_scale, float data_scale, layer l)
 {
-    float* om=(float*)calloc(l.oh*l.ow*l.oc, sizeof(float));
+    DTYPE tmp;
+    int out;
+    static float* ifmf=(float*)calloc(l.ih*l.iw*l.ic, sizeof(float));
+    static float* weightf=(float*)calloc(l.k*l.k*l.ic*l.oc, sizeof(float));
+    static float* ofmf=(float*)calloc(l.oh*l.ow*l.oc, sizeof(float));
+    for(int i=0;i<l.ih*l.iw*l.ic;i++)   
+    {
+        tmp=(DTYPE)(ifm[i]*data_scale);
+        printf("ifm[%d]=%d\n",i,tmp);
+        ifmf[i]=(float)tmp;
+
+    }
+    for(int i=0;i<l.k*l.k*l.ic*l.oc;i++) 
+    {
+        tmp=(DTYPE)(weight[i]*weight_scale);
+        weightf[i]=(float)tmp;
+        printf("weight[%d]=%d\n",i,tmp);
+    }
+
     if(l.k==1)
     {
-        gemm(ifm,weight,om,l);
+        gemm(ifmf,weightf,ofmf,l);
+        for(int i=0;i<l.oh*l.ow*l.oc;i++) 
+        {
+            out=(int)ofmf[i];
+            ofmf[i]=(float)out/(weight_scale*data_scale); 
+        }
     }
     else
     {
-        float* im=(float*)calloc(l.oh*l.ow*l.ic*l.k*l.k, sizeof(float));
-        fm2mm(ifm,im,l);
-        gemm(im,weight,om,l);
-        free(im);
+        //transpose input feature map to matrix
+        float* immf=(float*)calloc(l.oh*l.ow*l.ic*l.k*l.k, sizeof(float));
+        fm2mm(ifmf,immf,l);
+        gemm(immf,weightf,ofmf,l);
+        free(immf);
+        for(int i=0;i<l.oh*l.ow*l.oc;i++) 
+        {
+            out=(int)ofmf[i];
+            ofmf[i]=(float)out/(weight_scale*data_scale); 
+        }
     }
-    add_bias(om,ofm,bias,l);
+    add_bias(ofmf,ofm,bias,l);
 }

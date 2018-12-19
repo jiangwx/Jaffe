@@ -18,7 +18,7 @@
 
 #define img_w 224
 #define img_h 224
-
+#define DTYPE char
 enum layer_type 
 {
     io_,conv_,maxpool_,avgpool_,lrn_,sigmoid_,innerproduct_,batchnorm_,relu_,concat_,softmax_,defualt_
@@ -49,7 +49,7 @@ void check_fm(float* fm, layer l, char* Net);
 
 
 void convolution(float *ifm, float *ofm, float *weight, float *bias, layer l);
-void convolution_mm(float *ifm, float *ofm, float *weight, float* bias, layer l);
+void convolution_mm(float *ifm, float *ofm, float *weight, float *bias, float weight_scale, float data_scale, layer l);
 
 void innerproduct(float *ifm, float *ofm, float *weight, float *bias, layer l);
 
